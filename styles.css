@@ -205,6 +205,9 @@ img {
 
 .card-image-wrap {
   aspect-ratio: 0.686;
+  overflow: hidden;
+  border-radius: 4px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(165, 228, 188, 0.75));
 }
 
 .card-image {
@@ -212,7 +215,15 @@ img {
   height: 100%;
   object-fit: cover;
   border-radius: 4px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(165, 228, 188, 0.75));
+}
+
+img.card-image {
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+
+img.card-image.is-loaded {
+  opacity: 1;
 }
 
 .card-hover-popup {

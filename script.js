@@ -182,12 +182,20 @@ function renderCards(cards) {
 
     const image = article.querySelector('img');
     if (image) {
+      const markLoaded = () => {
+        requestAnimationFrame(() => {
+          image.classList.add('is-loaded');
+        });
+      };
+
+      image.addEventListener('load', markLoaded);
       image.addEventListener('error', () => {
         const urls = JSON.parse(image.dataset.fallbackUrls || '[]');
         const nextIndex = (Number(image.dataset.fallbackIndex) || 0) + 1;
         const nextUrl = urls[nextIndex];
 
         if (nextUrl) {
+          image.classList.remove('is-loaded');
           image.dataset.fallbackIndex = String(nextIndex);
           image.src = nextUrl;
           return;
@@ -200,6 +208,10 @@ function renderCards(cards) {
           }),
         );
       });
+
+      if (image.complete && image.naturalWidth > 0) {
+        markLoaded();
+      }
     }
 
     fragment.appendChild(article);
