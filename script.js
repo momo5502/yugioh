@@ -13,6 +13,7 @@ const toolbarHandle = document.getElementById('toolbar-handle');
 
 let activePopupTile = null;
 let toolbarHovered = false;
+let toolbarPinnedOpen = false;
 
 const searchInput = document.getElementById('search-input');
 const kindSelect = document.getElementById('kind-select');
@@ -295,7 +296,7 @@ function setToolbarCollapsed(collapsed) {
 
 function syncToolbarCollapse() {
   if (!toolbar) return;
-  const shouldCollapse = window.scrollY > 12 && !toolbarHovered && !toolbar.matches(':focus-within');
+  const shouldCollapse = !toolbarHovered && !toolbarPinnedOpen && !toolbar.matches(':focus-within');
   setToolbarCollapsed(shouldCollapse);
 }
 
@@ -479,15 +480,12 @@ if (toolbar) {
 
 if (toolbarHandle) {
   toolbarHandle.addEventListener('click', () => {
-    const collapsed = toolbar?.classList.contains('is-collapsed');
-    if (collapsed) {
-      setToolbarCollapsed(false);
-    } else if (window.scrollY > 12) {
-      setToolbarCollapsed(true);
-    }
+    toolbarPinnedOpen = !toolbarPinnedOpen;
+    syncToolbarCollapse();
   });
 }
 
+setToolbarCollapsed(true);
 syncToolbarCollapse();
 
 let searchTimer = 0;
