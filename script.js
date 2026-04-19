@@ -10,6 +10,7 @@ const sentinel = document.getElementById('load-sentinel');
 const hoverPopup = document.getElementById('card-hover-popup');
 const toolbar = document.getElementById('toolbar');
 const toolbarHandle = document.getElementById('toolbar-handle');
+const toolbarCount = document.getElementById('toolbar-count');
 
 let activePopupTile = null;
 let toolbarHovered = false;
@@ -307,6 +308,11 @@ function updateStatus(message) {
   }
 }
 
+function updateToolbarHandleCount(value = '') {
+  if (!toolbarCount) return;
+  toolbarCount.textContent = value ? String(value) : '';
+}
+
 function updateCount() {
   if (!countText) return;
 
@@ -401,6 +407,7 @@ function applyView() {
   grid.replaceChildren();
   emptyState.classList.add('hidden');
   updateCount();
+  updateToolbarHandleCount('…');
   updateStatus(hasActiveFilters(query) ? 'Applying filters…' : 'Preparing card view…');
   setLoading(true, 'Preparing cards…');
 
@@ -553,6 +560,7 @@ state.worker.addEventListener('message', ({ data }) => {
     state.allTotal = data.total || 0;
     updateStatus('Archive ready.');
     updateCount();
+    updateToolbarHandleCount(state.allTotal ? state.allTotal.toLocaleString() : '0');
 
     if (!state.allTotal) {
       state.complete = true;
@@ -579,6 +587,7 @@ state.worker.addEventListener('message', ({ data }) => {
     state.complete = !state.total;
     updateStatus(state.total ? 'Archive ready — scroll to load more cards.' : 'No cards match the current filters.');
     updateCount();
+    updateToolbarHandleCount(state.total.toLocaleString());
 
     if (!state.total) {
       setLoading(false);

@@ -94,8 +94,28 @@ img {
 
 .toolbar-handle::after {
   content: '▴';
+  margin-left: auto;
   font-size: 0.72rem;
   transition: transform 180ms ease;
+}
+
+.toolbar-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+  background: rgba(137, 229, 159, 0.2);
+  color: #3f6b54;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.toolbar-count:empty {
+  display: none;
 }
 
 .toolbar-handle:focus-visible {
