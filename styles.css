@@ -9,6 +9,7 @@
   --muted: #4c695c;
   --shadow: 0 20px 60px rgba(28, 68, 44, 0.14);
   --border: rgba(255, 255, 255, 0.45);
+  --toolbar-collapsed-height: 48px;
 }
 
 * {
@@ -43,16 +44,16 @@ img {
 .page-shell {
   width: min(1500px, calc(100% - 1rem));
   margin: 0 auto;
-  padding: 0 0 2rem;
+  padding: calc(var(--toolbar-collapsed-height) + 0.8rem) 0 2rem;
 }
 
 .toolbar {
-  position: sticky;
-  position: -webkit-sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 50;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
+  min-height: var(--toolbar-collapsed-height);
   padding: 0.35rem 0;
   border: 1px solid var(--border);
   border-left: 0;
@@ -73,7 +74,7 @@ img {
 }
 
 .toolbar-handle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.45rem;
   min-height: 28px;
@@ -364,15 +365,19 @@ img.card-image.is-loaded {
 }
 
 @media (max-width: 900px) {
-  .toolbar {
-    top: 0;
+  :root {
+    --toolbar-collapsed-height: 46px;
   }
 }
 
 @media (max-width: 680px) {
+  :root {
+    --toolbar-collapsed-height: 44px;
+  }
+
   .page-shell {
     width: min(100% - 0.75rem, 100%);
-    padding-top: 0;
+    padding-top: calc(var(--toolbar-collapsed-height) + 0.65rem);
   }
 
   .toolbar {
