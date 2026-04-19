@@ -343,7 +343,13 @@ img.card-image.is-loaded {
 }
 
 .loading-indicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 70;
   width: min(420px, calc(100% - 1rem));
+  margin: 0;
+  transform: translate(-50%, -50%);
 }
 
 .loading-progress {
