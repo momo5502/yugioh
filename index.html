@@ -9,25 +9,118 @@
   </head>
   <body>
     <div class="page-shell">
-      <header class="hero">
-        <p class="eyebrow">Yu-Gi-Oh! archive</p>
-        <h1>All cards, rendered as you scroll.</h1>
-        <p class="hero-copy">
-          The gallery loads the large <code>data/cards.json</code> file in your browser and
-          appends cards in batches when you get close to the end of the page.
-        </p>
+      <nav id="toolbar" class="toolbar" aria-label="Card controls">
+        <button id="toolbar-handle" class="toolbar-handle" type="button" aria-expanded="true">
+          Filters
+        </button>
 
-        <div class="hero-stats">
-          <div class="stat-card">
-            <span class="stat-label">Status</span>
-            <strong id="status-text">Preparing the card archive…</strong>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">Progress</span>
-            <strong id="count-text">0 cards loaded</strong>
+        <div class="toolbar-panel">
+          <div class="toolbar-row toolbar-controls">
+            <label class="control control-search">
+              <span>Search</span>
+              <input id="search-input" type="search" placeholder="Search by name or effect..." autocomplete="off" />
+            </label>
+
+            <label class="control">
+              <span>Card kind</span>
+              <select id="kind-select">
+                <option value="all">All</option>
+                <option value="monster">Monster</option>
+                <option value="spell">Spell</option>
+                <option value="trap">Trap</option>
+                <option value="token">Token</option>
+                <option value="skill">Skill</option>
+              </select>
+            </label>
+
+            <label class="control">
+              <span>Monster race</span>
+              <select id="monster-type-select">
+                <option value="all">All</option>
+                <option value="aqua">Aqua</option>
+                <option value="beast">Beast</option>
+                <option value="beastwarrior">Beast-Warrior</option>
+                <option value="creatorgod">Creator-God</option>
+                <option value="cyberse">Cyberse</option>
+                <option value="dinosaur">Dinosaur</option>
+                <option value="divinebeast">Divine-Beast</option>
+                <option value="dragon">Dragon</option>
+                <option value="fairy">Fairy</option>
+                <option value="fiend">Fiend</option>
+                <option value="fish">Fish</option>
+                <option value="illusion">Illusion</option>
+                <option value="insect">Insect</option>
+                <option value="machine">Machine</option>
+                <option value="plant">Plant</option>
+                <option value="psychic">Psychic</option>
+                <option value="pyro">Pyro</option>
+                <option value="reptile">Reptile</option>
+                <option value="rock">Rock</option>
+                <option value="seaserpent">Sea Serpent</option>
+                <option value="spellcaster">Spellcaster</option>
+                <option value="thunder">Thunder</option>
+                <option value="warrior">Warrior</option>
+                <option value="wingedbeast">Winged Beast</option>
+                <option value="wyrm">Wyrm</option>
+                <option value="zombie">Zombie</option>
+              </select>
+            </label>
+
+            <label class="control">
+              <span>Attribute</span>
+              <select id="attribute-select">
+                <option value="all">All</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="fire">Fire</option>
+                <option value="water">Water</option>
+                <option value="wind">Wind</option>
+                <option value="earth">Earth</option>
+                <option value="divine">Divine</option>
+              </select>
+            </label>
+
+            <label class="control">
+              <span>Spell/Trap subtype</span>
+              <select id="subcategory-select">
+                <option value="all">All</option>
+                <option value="normal">Normal</option>
+                <option value="continuous">Continuous</option>
+                <option value="equip">Equip</option>
+                <option value="quickplay">Quick-Play</option>
+                <option value="field">Field</option>
+                <option value="ritual">Ritual</option>
+                <option value="counter">Counter</option>
+              </select>
+            </label>
+
+            <label class="control">
+              <span>Sort by</span>
+              <select id="sort-select">
+                <option value="default">Default</option>
+                <option value="name">Name</option>
+                <option value="atk">ATK</option>
+                <option value="def">DEF</option>
+                <option value="level">Level</option>
+                <option value="rank">Rank</option>
+                <option value="scale">Scale</option>
+                <option value="password">Password</option>
+                <option value="id">ID</option>
+              </select>
+            </label>
+
+            <label class="control control-order">
+              <span>Order</span>
+              <select id="order-select">
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+              </select>
+            </label>
+
+            <button id="reset-button" class="reset-button" type="button">Reset</button>
           </div>
         </div>
-      </header>
+      </nav>
 
       <main>
         <section class="gallery-section">

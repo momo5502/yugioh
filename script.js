@@ -5,22 +5,44 @@ const loadingIndicator = document.getElementById('loading-indicator');
 const emptyState = document.getElementById('empty-state');
 const sentinel = document.getElementById('load-sentinel');
 const hoverPopup = document.getElementById('card-hover-popup');
+const toolbar = document.getElementById('toolbar');
+const toolbarHandle = document.getElementById('toolbar-handle');
+
+let activePopupTile = null;
+let toolbarHovered = false;
+
+const searchInput = document.getElementById('search-input');
+const kindSelect = document.getElementById('kind-select');
+const monsterTypeSelect = document.getElementById('monster-type-select');
+const attributeSelect = document.getElementById('attribute-select');
+const subcategorySelect = document.getElementById('subcategory-select');
+const sortSelect = document.getElementById('sort-select');
+const orderSelect = document.getElementById('order-select');
+const resetButton = document.getElementById('reset-button');
 
 const state = {
+  allTotal: 0,
   total: 0,
   loaded: 0,
-  batchSize: window.innerWidth >= 1280 ? 84 : window.innerWidth >= 768 ? 60 : 30,
+  batchSize: window.innerWidth >= 1280 ? 96 : window.innerWidth >= 768 ? 72 : 36,
   loading: false,
   ready: false,
   complete: false,
   worker: null,
+  activeToken: 0,
 };
 
 const LABELS = {
+  aqua: 'Aqua',
   beastwarrior: 'Beast-Warrior',
-  wingedbeast: 'Winged Beast',
-  seaserpent: 'Sea Serpent',
+  dark: 'Dark',
+  divine: 'Divine',
   divinebeast: 'Divine-Beast',
+  earth: 'Earth',
+  fire: 'Fire',
+  light: 'Light',
+  seaserpent: 'Sea Serpent',
+  wingedbeast: 'Winged Beast',
   creatorgod: 'Creator-God',
   quickplay: 'Quick-Play',
   specialsummon: 'Special Summon',
@@ -36,8 +58,29 @@ function getPrimaryText(card) {
   return card.text.en || Object.values(card.text)[0] || {};
 }
 
+function isYgoProDeckUrl(value) {
+  return /^https?:\/\/(?:images\.)?ygoprodeck\.com\//i.test(String(value || ''));
+}
+
+function getImageCandidates(card) {
+  const images = Array.isArray(card?.images) ? card.images : [];
+  const preferred = [];
+  const fallback = [];
+  const seen = new Set();
+
+  for (const image of images) {
+    for (const url of [image?.card, image?.art]) {
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      (isYgoProDeckUrl(url) ? preferred : fallback).push(url);
+    }
+  }
+
+  return [...preferred, ...fallback];
+}
+
 function getImageUrl(card) {
-  return card?.images?.[0]?.card || card?.images?.[0]?.art || '';
+  return getImageCandidates(card)[0] || '';
 }
 
 function buildTypeLine(card) {
@@ -94,7 +137,8 @@ function renderCards(cards) {
     const text = getPrimaryText(card);
     const article = document.createElement('article');
     const name = text.name || 'Unnamed card';
-    const imageUrl = getImageUrl(card);
+    const imageCandidates = getImageCandidates(card);
+    const imageUrl = imageCandidates[0] || '';
 
     article.className = 'card-tile';
     article.tabIndex = 0;
@@ -103,37 +147,59 @@ function renderCards(cards) {
     article.innerHTML = `
       <div class="card-image-wrap">
         ${imageUrl
-          ? `<img class="card-image" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(name)}" loading="lazy" decoding="async" />`
+          ? `<img class="card-image" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(name)}" loading="lazy" decoding="async" data-fallback-index="0" data-fallback-urls="${escapeAttribute(JSON.stringify(imageCandidates))}" />`
           : `<div class="card-image" aria-hidden="true"></div>`}
       </div>
     `;
 
-    const movePopup = (event) => positionPopup(event.clientX, event.clientY);
-    article.addEventListener('mouseenter', (event) => {
+    article.addEventListener('click', (event) => {
+      event.preventDefault();
+      activePopupTile = article;
       showPopup(card, event.clientX, event.clientY);
     });
-    article.addEventListener('mousemove', movePopup);
-    article.addEventListener('mouseleave', hidePopup);
-    article.addEventListener('focus', () => {
+    article.addEventListener('mousemove', (event) => {
+      if (activePopupTile === article) {
+        positionPopup(event.clientX, event.clientY);
+      }
+    });
+    article.addEventListener('mouseleave', () => {
+      if (activePopupTile === article) {
+        hidePopup();
+      }
+    });
+    article.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      activePopupTile = article;
       const rect = article.getBoundingClientRect();
       showPopup(card, rect.right + 12, rect.top + 12);
     });
-    article.addEventListener('blur', hidePopup);
+    article.addEventListener('blur', () => {
+      if (activePopupTile === article) {
+        hidePopup();
+      }
+    });
 
     const image = article.querySelector('img');
     if (image) {
-      image.addEventListener(
-        'error',
-        () => {
-          image.replaceWith(
-            Object.assign(document.createElement('div'), {
-              className: 'card-image',
-              ariaHidden: 'true',
-            }),
-          );
-        },
-        { once: true },
-      );
+      image.addEventListener('error', () => {
+        const urls = JSON.parse(image.dataset.fallbackUrls || '[]');
+        const nextIndex = (Number(image.dataset.fallbackIndex) || 0) + 1;
+        const nextUrl = urls[nextIndex];
+
+        if (nextUrl) {
+          image.dataset.fallbackIndex = String(nextIndex);
+          image.src = nextUrl;
+          return;
+        }
+
+        image.replaceWith(
+          Object.assign(document.createElement('div'), {
+            className: 'card-image',
+            ariaHidden: 'true',
+          }),
+        );
+      });
     }
 
     fragment.appendChild(article);
@@ -175,27 +241,17 @@ function positionPopup(x, y) {
   let left = x + gap;
   let top = y + gap;
 
-  if (left + rect.width > window.innerWidth - 8) {
-    left = x - rect.width - gap;
-  }
-
-  if (left < 8) {
-    left = 8;
-  }
-
-  if (top + rect.height > window.innerHeight - 8) {
-    top = window.innerHeight - rect.height - 8;
-  }
-
-  if (top < 8) {
-    top = 8;
-  }
+  if (left + rect.width > window.innerWidth - 8) left = x - rect.width - gap;
+  if (left < 8) left = 8;
+  if (top + rect.height > window.innerHeight - 8) top = window.innerHeight - rect.height - 8;
+  if (top < 8) top = 8;
 
   hoverPopup.style.left = `${left}px`;
   hoverPopup.style.top = `${top}px`;
 }
 
 function hidePopup() {
+  activePopupTile = null;
   if (!hoverPopup) return;
   hoverPopup.classList.add('hidden');
   hoverPopup.setAttribute('aria-hidden', 'true');
@@ -214,17 +270,44 @@ function escapeAttribute(value) {
   return escapeHtml(value);
 }
 
+function setToolbarCollapsed(collapsed) {
+  if (!toolbar) return;
+  toolbar.classList.toggle('is-collapsed', collapsed);
+  if (toolbarHandle) {
+    toolbarHandle.setAttribute('aria-expanded', String(!collapsed));
+  }
+}
+
+function syncToolbarCollapse() {
+  if (!toolbar) return;
+  const shouldCollapse = window.scrollY > 12 && !toolbarHovered && !toolbar.matches(':focus-within');
+  setToolbarCollapsed(shouldCollapse);
+}
+
 function updateStatus(message) {
-  statusText.textContent = message;
+  if (statusText) {
+    statusText.textContent = message;
+  }
 }
 
 function updateCount() {
-  if (!state.total) {
-    countText.textContent = `${state.loaded.toLocaleString()} cards loaded`;
+  if (!countText) return;
+
+  if (!state.ready) {
+    countText.textContent = '0 cards loaded';
     return;
   }
 
-  countText.textContent = `${state.loaded.toLocaleString()} of ${state.total.toLocaleString()} cards loaded`;
+  const loaded = state.loaded.toLocaleString();
+  const total = state.total.toLocaleString();
+  const allTotal = state.allTotal.toLocaleString();
+
+  if (!state.total) {
+    countText.textContent = `0 matches • ${allTotal} total cards`;
+    return;
+  }
+
+  countText.textContent = `${loaded} of ${total} shown • ${allTotal} total cards`;
 }
 
 function setLoading(loading, message = 'Loading more cards…') {
@@ -233,11 +316,60 @@ function setLoading(loading, message = 'Loading more cards…') {
   loadingIndicator.classList.toggle('hidden', !loading);
 }
 
+function currentQuery() {
+  return {
+    search: searchInput.value.trim(),
+    cardType: kindSelect.value,
+    monsterType: monsterTypeSelect.value,
+    attribute: attributeSelect.value,
+    subcategory: subcategorySelect.value,
+    sortBy: sortSelect.value,
+    sortOrder: orderSelect.value,
+  };
+}
+
+function hasActiveFilters(query) {
+  return Boolean(
+    query.search ||
+      query.cardType !== 'all' ||
+      query.monsterType !== 'all' ||
+      query.attribute !== 'all' ||
+      query.subcategory !== 'all' ||
+      query.sortBy !== 'default' ||
+      query.sortOrder !== 'asc',
+  );
+}
+
+function applyView() {
+  if (!state.ready) return;
+
+  const query = currentQuery();
+  state.activeToken += 1;
+  state.loaded = 0;
+  state.total = 0;
+  state.complete = false;
+
+  hidePopup();
+  grid.replaceChildren();
+  emptyState.classList.add('hidden');
+  updateCount();
+  updateStatus(hasActiveFilters(query) ? 'Applying filters…' : 'Preparing card view…');
+  setLoading(true, 'Preparing cards…');
+
+  state.worker.postMessage({
+    type: 'setView',
+    token: state.activeToken,
+    query,
+  });
+}
+
 function requestNextBatch() {
   if (!state.ready || state.loading || state.complete) return;
-  setLoading(true);
+
+  setLoading(true, state.loaded ? 'Loading more cards…' : 'Loading cards…');
   state.worker.postMessage({
     type: 'getBatch',
+    token: state.activeToken,
     start: state.loaded,
     size: state.batchSize,
   });
@@ -254,9 +386,7 @@ function showError(message) {
 const observer = new IntersectionObserver(
   (entries) => {
     for (const entry of entries) {
-      if (entry.isIntersecting) {
-        requestNextBatch();
-      }
+      if (entry.isIntersecting) requestNextBatch();
     }
   },
   { rootMargin: '1200px 0px' },
@@ -267,62 +397,141 @@ updateCount();
 setLoading(true, 'Loading card archive…');
 updateStatus('Loading card archive in a background worker…');
 
-window.addEventListener('scroll', hidePopup, { passive: true });
-window.addEventListener('resize', hidePopup);
+window.addEventListener('scroll', () => {
+  hidePopup();
+  syncToolbarCollapse();
+}, { passive: true });
+window.addEventListener('resize', () => {
+  hidePopup();
+  syncToolbarCollapse();
+});
+document.addEventListener('click', (event) => {
+  if (activePopupTile && !activePopupTile.contains(event.target)) {
+    hidePopup();
+  }
+});
 
-afterStart();
-
-function afterStart() {
-  state.worker = new Worker('./card-worker.js');
-  state.worker.postMessage({ type: 'init' });
-
-  state.worker.addEventListener('message', ({ data }) => {
-    if (!data || typeof data !== 'object') return;
-
-    if (data.type === 'ready') {
-      state.ready = true;
-      state.total = data.total || 0;
-      updateStatus('Archive ready — more cards load automatically as you scroll.');
-      updateCount();
-
-      if (!state.total) {
-        state.complete = true;
-        setLoading(false);
-        emptyState.textContent = 'No cards were found in data/cards.json.';
-        emptyState.classList.remove('hidden');
-        return;
-      }
-
-      emptyState.classList.add('hidden');
-      setLoading(false);
-      requestNextBatch();
-      return;
-    }
-
-    if (data.type === 'batch') {
-      const cards = Array.isArray(data.cards) ? data.cards : [];
-      renderCards(cards);
-      state.loaded += cards.length;
-      updateCount();
-
-      state.complete = state.loaded >= state.total || cards.length === 0;
-
-      if (state.complete) {
-        updateStatus('All cards loaded.');
-        setLoading(false);
-      } else {
-        setLoading(false, 'Loading more cards…');
-      }
-
-      return;
-    }
-
-    if (data.type === 'error') {
-      showError(data.message || 'An unknown error occurred.');
-    }
+if (toolbar) {
+  toolbar.addEventListener('mouseenter', () => {
+    toolbarHovered = true;
+    setToolbarCollapsed(false);
   });
 
-  state.worker.addEventListener('error', (event) => {
-    showError(event.message || 'The background worker failed to start.');
+  toolbar.addEventListener('mouseleave', () => {
+    toolbarHovered = false;
+    syncToolbarCollapse();
+  });
+
+  toolbar.addEventListener('focusin', () => {
+    setToolbarCollapsed(false);
+  });
+
+  toolbar.addEventListener('focusout', () => {
+    requestAnimationFrame(syncToolbarCollapse);
   });
 }
+
+if (toolbarHandle) {
+  toolbarHandle.addEventListener('click', () => {
+    const collapsed = toolbar?.classList.contains('is-collapsed');
+    if (collapsed) {
+      setToolbarCollapsed(false);
+    } else if (window.scrollY > 12) {
+      setToolbarCollapsed(true);
+    }
+  });
+}
+
+syncToolbarCollapse();
+
+let searchTimer = 0;
+searchInput.addEventListener('input', () => {
+  window.clearTimeout(searchTimer);
+  searchTimer = window.setTimeout(applyView, 180);
+});
+
+for (const control of [kindSelect, monsterTypeSelect, attributeSelect, subcategorySelect, sortSelect, orderSelect]) {
+  control.addEventListener('change', applyView);
+}
+
+resetButton.addEventListener('click', () => {
+  searchInput.value = '';
+  kindSelect.value = 'all';
+  monsterTypeSelect.value = 'all';
+  attributeSelect.value = 'all';
+  subcategorySelect.value = 'all';
+  sortSelect.value = 'default';
+  orderSelect.value = 'asc';
+  applyView();
+});
+
+state.worker = new Worker('./card-worker.js');
+state.worker.postMessage({ type: 'init' });
+
+state.worker.addEventListener('message', ({ data }) => {
+  if (!data || typeof data !== 'object') return;
+
+  if (data.type === 'ready') {
+    state.ready = true;
+    state.allTotal = data.total || 0;
+    updateStatus('Archive ready.');
+    updateCount();
+
+    if (!state.allTotal) {
+      state.complete = true;
+      setLoading(false);
+      emptyState.textContent = 'No cards were found in data/cards.json.';
+      emptyState.classList.remove('hidden');
+      return;
+    }
+
+    applyView();
+    return;
+  }
+
+  if (data.type === 'error') {
+    showError(data.message || 'An unknown error occurred.');
+    return;
+  }
+
+  if (data.token !== state.activeToken) return;
+
+  if (data.type === 'viewReady') {
+    state.total = data.total || 0;
+    state.loaded = 0;
+    state.complete = !state.total;
+    updateStatus(state.total ? 'Archive ready — scroll to load more cards.' : 'No cards match the current filters.');
+    updateCount();
+
+    if (!state.total) {
+      setLoading(false);
+      emptyState.textContent = 'No cards match the current filters.';
+      emptyState.classList.remove('hidden');
+      return;
+    }
+
+    setLoading(false);
+    requestNextBatch();
+    return;
+  }
+
+  if (data.type === 'batch') {
+    const cards = Array.isArray(data.cards) ? data.cards : [];
+    renderCards(cards);
+    state.loaded += cards.length;
+    state.complete = state.loaded >= state.total || cards.length === 0;
+    updateCount();
+
+    if (state.complete) {
+      updateStatus('All matching cards loaded.');
+      setLoading(false);
+    } else {
+      updateStatus('Archive ready — scroll to load more cards.');
+      setLoading(false);
+    }
+  }
+});
+
+state.worker.addEventListener('error', (event) => {
+  showError(event.message || 'The background worker failed to start.');
+});
