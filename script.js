@@ -469,7 +469,10 @@ if (toolbar) {
     syncToolbarCollapse();
   });
 
-  toolbar.addEventListener('focusin', () => {
+  toolbar.addEventListener('focusin', (event) => {
+    if (event.target === toolbarHandle && !toolbarPinnedOpen) {
+      return;
+    }
     setToolbarCollapsed(false);
   });
 
@@ -480,8 +483,17 @@ if (toolbar) {
 
 if (toolbarHandle) {
   toolbarHandle.addEventListener('click', () => {
-    toolbarPinnedOpen = !toolbarPinnedOpen;
-    syncToolbarCollapse();
+    const isCollapsed = toolbar?.classList.contains('is-collapsed');
+
+    if (isCollapsed) {
+      toolbarPinnedOpen = true;
+      setToolbarCollapsed(false);
+      return;
+    }
+
+    toolbarPinnedOpen = false;
+    setToolbarCollapsed(true);
+    toolbarHandle.blur();
   });
 }
 
