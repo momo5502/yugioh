@@ -2,6 +2,8 @@
 
 A lightweight static site that displays Yu-Gi-Oh! cards in a responsive image grid with:
 
+Live site: https://momo5502.github.io/yugioh/
+
 - infinite scrolling
 - search
 - filtering
