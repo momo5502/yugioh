@@ -14,6 +14,7 @@ const toolbarHandle = document.getElementById('toolbar-handle');
 let activePopupTile = null;
 let toolbarHovered = false;
 let toolbarPinnedOpen = false;
+const canHoverToolbar = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 const searchInput = document.getElementById('search-input');
 const kindSelect = document.getElementById('kind-select');
@@ -459,15 +460,17 @@ document.addEventListener('click', (event) => {
 });
 
 if (toolbar) {
-  toolbar.addEventListener('mouseenter', () => {
-    toolbarHovered = true;
-    setToolbarCollapsed(false);
-  });
+  if (canHoverToolbar) {
+    toolbar.addEventListener('mouseenter', () => {
+      toolbarHovered = true;
+      setToolbarCollapsed(false);
+    });
 
-  toolbar.addEventListener('mouseleave', () => {
-    toolbarHovered = false;
-    syncToolbarCollapse();
-  });
+    toolbar.addEventListener('mouseleave', () => {
+      toolbarHovered = false;
+      syncToolbarCollapse();
+    });
+  }
 
   toolbar.addEventListener('focusin', (event) => {
     if (event.target === toolbarHandle && !toolbarPinnedOpen) {
@@ -483,6 +486,10 @@ if (toolbar) {
 
 if (toolbarHandle) {
   toolbarHandle.addEventListener('click', () => {
+    if (!canHoverToolbar) {
+      toolbarHovered = false;
+    }
+
     const isCollapsed = toolbar?.classList.contains('is-collapsed');
 
     if (isCollapsed) {
