@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yu-Gi-Oh! Card Gallery</title>
+    <link rel="preconnect" href="https://images.ygoprodeck.com" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <p class="eyebrow">Yu-Gi-Oh! archive</p>
+        <h1>All cards, rendered as you scroll.</h1>
+        <p class="hero-copy">
+          The gallery loads the large <code>data/cards.json</code> file in your browser and
+          appends cards in batches when you get close to the end of the page.
+        </p>
+
+        <div class="hero-stats">
+          <div class="stat-card">
+            <span class="stat-label">Status</span>
+            <strong id="status-text">Preparing the card archive…</strong>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Progress</span>
+            <strong id="count-text">0 cards loaded</strong>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section class="gallery-section">
+          <div id="cards-grid" class="cards-grid" aria-live="polite"></div>
+          <div id="empty-state" class="empty-state hidden"></div>
+          <div id="load-sentinel" class="load-sentinel" aria-hidden="true"></div>
+          <div id="loading-indicator" class="loading-indicator">Loading more cards…</div>
+        </section>
+      </main>
+    </div>
+
+    <aside id="card-hover-popup" class="card-hover-popup hidden" aria-hidden="true"></aside>
+
+    <script src="./script.js" defer></script>
+  </body>
+</html>
