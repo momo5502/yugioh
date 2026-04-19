@@ -298,7 +298,9 @@ function setToolbarCollapsed(collapsed) {
 
 function syncToolbarCollapse() {
   if (!toolbar) return;
-  const shouldCollapse = !toolbarHovered && !toolbarPinnedOpen && !toolbar.matches(':focus-within');
+
+  const blockedByFocus = canHoverToolbar ? false : toolbar.matches(':focus-within');
+  const shouldCollapse = !toolbarHovered && !toolbarPinnedOpen && !blockedByFocus;
   setToolbarCollapsed(shouldCollapse);
 }
 
@@ -475,11 +477,17 @@ if (toolbar) {
 
     toolbar.addEventListener('mouseleave', () => {
       toolbarHovered = false;
+      if (toolbar.contains(document.activeElement)) {
+        document.activeElement.blur();
+      }
       syncToolbarCollapse();
     });
   }
 
   toolbar.addEventListener('focusin', (event) => {
+    if (canHoverToolbar) {
+      return;
+    }
     if (event.target === toolbarHandle && !toolbarPinnedOpen) {
       return;
     }
@@ -493,11 +501,17 @@ if (toolbar) {
 
 if (toolbarHandle) {
   toolbarHandle.addEventListener('click', () => {
-    if (!canHoverToolbar) {
-      toolbarHovered = false;
+    const isCollapsed = toolbar?.classList.contains('is-collapsed');
+
+    if (canHoverToolbar) {
+      setToolbarCollapsed(!isCollapsed);
+      if (!isCollapsed) {
+        toolbarHandle.blur();
+      }
+      return;
     }
 
-    const isCollapsed = toolbar?.classList.contains('is-collapsed');
+    toolbarHovered = false;
 
     if (isCollapsed) {
       toolbarPinnedOpen = true;

@@ -346,7 +346,7 @@ img.card-image.is-loaded {
   position: fixed;
   top: 50%;
   left: 50%;
-  z-index: 70;
+  z-index: 40;
   width: min(420px, calc(100% - 1rem));
   margin: 0;
   transform: translate(-50%, -50%);
