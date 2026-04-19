@@ -555,6 +555,20 @@ state.worker.addEventListener('message', ({ data }) => {
     return;
   }
 
+  if (data.type === 'setsDownloadProgress') {
+    const hasReliableTotal = typeof data.totalBytes === 'number' && Number.isFinite(data.totalBytes) && data.totalBytes > 0;
+    const message = hasReliableTotal
+      ? `Downloading set archive… ${Math.round((data.loadedBytes / data.totalBytes) * 100)}% (${formatBytes(data.loadedBytes)} / ${formatBytes(data.totalBytes)})`
+      : `Downloading set archive… ${formatBytes(data.loadedBytes)}`;
+    setLoading(true, message, hasReliableTotal ? data.loadedBytes / data.totalBytes : 'indeterminate');
+    return;
+  }
+
+  if (data.type === 'setsParsing') {
+    setLoading(true, 'Parsing set archive…', 1);
+    return;
+  }
+
   if (data.type === 'ready') {
     state.ready = true;
     state.allTotal = data.total || 0;
