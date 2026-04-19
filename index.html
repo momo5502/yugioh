@@ -127,7 +127,12 @@
           <div id="cards-grid" class="cards-grid" aria-live="polite"></div>
           <div id="empty-state" class="empty-state hidden"></div>
           <div id="load-sentinel" class="load-sentinel" aria-hidden="true"></div>
-          <div id="loading-indicator" class="loading-indicator">Loading more cards…</div>
+          <div id="loading-indicator" class="loading-indicator">
+            <div id="loading-text">Loading more cards…</div>
+            <div id="loading-progress" class="loading-progress hidden" aria-hidden="true">
+              <div id="loading-progress-bar" class="loading-progress-bar"></div>
+            </div>
+          </div>
         </section>
       </main>
     </div>

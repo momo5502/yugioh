@@ -2,6 +2,9 @@ const grid = document.getElementById('cards-grid');
 const statusText = document.getElementById('status-text');
 const countText = document.getElementById('count-text');
 const loadingIndicator = document.getElementById('loading-indicator');
+const loadingText = document.getElementById('loading-text');
+const loadingProgress = document.getElementById('loading-progress');
+const loadingProgressBar = document.getElementById('loading-progress-bar');
 const emptyState = document.getElementById('empty-state');
 const sentinel = document.getElementById('load-sentinel');
 const hoverPopup = document.getElementById('card-hover-popup');
@@ -322,9 +325,35 @@ function updateCount() {
   countText.textContent = `${loaded} of ${total} shown • ${allTotal} total cards`;
 }
 
-function setLoading(loading, message = 'Loading more cards…') {
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unitIndex = 0;
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+
+  return `${value >= 100 || unitIndex === 0 ? Math.round(value) : value.toFixed(1)} ${units[unitIndex]}`;
+}
+
+function setLoadingProgress(value = null) {
+  if (!loadingProgress || !loadingProgressBar) return;
+
+  const hasValue = typeof value === 'number' && Number.isFinite(value);
+  loadingProgress.classList.toggle('hidden', !hasValue);
+  loadingProgress.setAttribute('aria-hidden', String(!hasValue));
+  loadingProgressBar.style.width = hasValue ? `${Math.max(0, Math.min(100, value * 100))}%` : '0%';
+}
+
+function setLoading(loading, message = 'Loading more cards…', progress = null) {
   state.loading = loading;
-  loadingIndicator.textContent = message;
+  if (loadingText) {
+    loadingText.textContent = message;
+  }
+  setLoadingProgress(progress);
   loadingIndicator.classList.toggle('hidden', !loading);
 }
 
@@ -483,6 +512,19 @@ state.worker.postMessage({ type: 'init' });
 state.worker.addEventListener('message', ({ data }) => {
   if (!data || typeof data !== 'object') return;
 
+  if (data.type === 'downloadProgress') {
+    const message = data.totalBytes
+      ? `Downloading card archive… ${Math.round((data.loadedBytes / data.totalBytes) * 100)}% (${formatBytes(data.loadedBytes)} / ${formatBytes(data.totalBytes)})`
+      : `Downloading card archive… ${formatBytes(data.loadedBytes)}`;
+    setLoading(true, message, data.totalBytes ? data.loadedBytes / data.totalBytes : null);
+    return;
+  }
+
+  if (data.type === 'parsing') {
+    setLoading(true, 'Parsing card archive…', 1);
+    return;
+  }
+
   if (data.type === 'ready') {
     state.ready = true;
     state.allTotal = data.total || 0;
@@ -492,7 +534,7 @@ state.worker.addEventListener('message', ({ data }) => {
     if (!state.allTotal) {
       state.complete = true;
       setLoading(false);
-      emptyState.textContent = 'No cards were found in data/cards.json.';
+      emptyState.textContent = 'No cards were found in the remote archive.';
       emptyState.classList.remove('hidden');
       return;
     }

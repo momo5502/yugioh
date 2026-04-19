@@ -1,3 +1,5 @@
+const CARDS_URL = 'https://raw.githubusercontent.com/iconmaster5326/YGOJSON/v1/aggregate/cards.json';
+
 let cards = null;
 let view = [];
 let loadPromise = null;
@@ -121,16 +123,56 @@ function matches(card, query) {
   return true;
 }
 
+async function fetchCardsText() {
+  const response = await fetch(CARDS_URL, { mode: 'cors' });
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}.`);
+  }
+
+  if (!response.body) {
+    const text = await response.text();
+    postMessage({ type: 'downloadProgress', loadedBytes: text.length, totalBytes: text.length });
+    return text;
+  }
+
+  const totalBytesHeader = response.headers.get('content-length');
+  const totalBytes = totalBytesHeader ? Number(totalBytesHeader) : null;
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const parts = [];
+  let loadedBytes = 0;
+  let lastSentAt = 0;
+  let lastRatio = -1;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    loadedBytes += value.byteLength;
+    parts.push(decoder.decode(value, { stream: true }));
+
+    const now = Date.now();
+    const ratio = totalBytes ? Math.floor((loadedBytes / totalBytes) * 100) : -1;
+    if (now - lastSentAt > 100 || ratio !== lastRatio) {
+      postMessage({ type: 'downloadProgress', loadedBytes, totalBytes });
+      lastSentAt = now;
+      lastRatio = ratio;
+    }
+  }
+
+  parts.push(decoder.decode());
+  postMessage({ type: 'downloadProgress', loadedBytes, totalBytes });
+  return parts.join('');
+}
+
 async function loadCards() {
   if (loadPromise) return loadPromise;
 
   loadPromise = (async () => {
-    const response = await fetch('./data/cards.json');
-    if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}.`);
-    }
+    const text = await fetchCardsText();
+    postMessage({ type: 'parsing' });
 
-    cards = await response.json();
+    cards = JSON.parse(text);
     if (!Array.isArray(cards)) cards = [];
 
     postMessage({
