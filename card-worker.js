@@ -131,12 +131,19 @@ async function fetchCardsText() {
 
   if (!response.body) {
     const text = await response.text();
-    postMessage({ type: 'downloadProgress', loadedBytes: text.length, totalBytes: text.length });
+    postMessage({ type: 'downloadProgress', loadedBytes: text.length, totalBytes: null });
     return text;
   }
 
   const totalBytesHeader = response.headers.get('content-length');
-  const totalBytes = totalBytesHeader ? Number(totalBytesHeader) : null;
+  const contentEncoding = (response.headers.get('content-encoding') || 'identity').toLowerCase();
+  const parsedTotalBytes = totalBytesHeader ? Number(totalBytesHeader) : null;
+  let totalBytes = Number.isFinite(parsedTotalBytes) && parsedTotalBytes > 0 ? parsedTotalBytes : null;
+
+  if (contentEncoding && contentEncoding !== 'identity') {
+    totalBytes = null;
+  }
+
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   const parts = [];
@@ -150,6 +157,11 @@ async function fetchCardsText() {
 
     loadedBytes += value.byteLength;
     parts.push(decoder.decode(value, { stream: true }));
+
+    if (totalBytes && loadedBytes > totalBytes) {
+      totalBytes = null;
+      lastRatio = -1;
+    }
 
     const now = Date.now();
     const ratio = totalBytes ? Math.floor((loadedBytes / totalBytes) * 100) : -1;

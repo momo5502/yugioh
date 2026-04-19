@@ -315,6 +315,11 @@ img.card-image.is-loaded {
   background: rgba(70, 122, 85, 0.12);
 }
 
+.loading-progress.is-indeterminate .loading-progress-bar {
+  width: 34% !important;
+  animation: loading-progress-indeterminate 900ms ease-in-out infinite;
+}
+
 .loading-progress-bar {
   width: 0%;
   height: 100%;
@@ -329,6 +334,15 @@ img.card-image.is-loaded {
 
 .hidden {
   display: none;
+}
+
+@keyframes loading-progress-indeterminate {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(320%);
+  }
 }
 
 @media (max-width: 900px) {

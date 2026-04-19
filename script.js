@@ -342,10 +342,15 @@ function formatBytes(bytes) {
 function setLoadingProgress(value = null) {
   if (!loadingProgress || !loadingProgressBar) return;
 
+  const isIndeterminate = value === 'indeterminate';
   const hasValue = typeof value === 'number' && Number.isFinite(value);
-  loadingProgress.classList.toggle('hidden', !hasValue);
-  loadingProgress.setAttribute('aria-hidden', String(!hasValue));
+  const isVisible = isIndeterminate || hasValue;
+
+  loadingProgress.classList.toggle('hidden', !isVisible);
+  loadingProgress.classList.toggle('is-indeterminate', isIndeterminate);
+  loadingProgress.setAttribute('aria-hidden', String(!isVisible));
   loadingProgressBar.style.width = hasValue ? `${Math.max(0, Math.min(100, value * 100))}%` : '0%';
+  loadingProgressBar.style.animation = isIndeterminate ? '' : 'none';
 }
 
 function setLoading(loading, message = 'Loading more cards…', progress = null) {
@@ -513,10 +518,11 @@ state.worker.addEventListener('message', ({ data }) => {
   if (!data || typeof data !== 'object') return;
 
   if (data.type === 'downloadProgress') {
-    const message = data.totalBytes
+    const hasReliableTotal = typeof data.totalBytes === 'number' && Number.isFinite(data.totalBytes) && data.totalBytes > 0;
+    const message = hasReliableTotal
       ? `Downloading card archive… ${Math.round((data.loadedBytes / data.totalBytes) * 100)}% (${formatBytes(data.loadedBytes)} / ${formatBytes(data.totalBytes)})`
       : `Downloading card archive… ${formatBytes(data.loadedBytes)}`;
-    setLoading(true, message, data.totalBytes ? data.loadedBytes / data.totalBytes : null);
+    setLoading(true, message, hasReliableTotal ? data.loadedBytes / data.totalBytes : 'indeterminate');
     return;
   }
 
